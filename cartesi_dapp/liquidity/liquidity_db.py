@@ -5,6 +5,7 @@ In-memoy data store for Liquidity Libs
 from . import models
 
 PROVIDERS_BY_ADDR: dict[str, models.FiatProvider] = {}
+TRANSACTIONS: dict[str, models.Transaction] = {}
 
 
 def get_fiat_provider_by_address(address: str) -> models.FiatProvider | None:
@@ -27,3 +28,21 @@ def list_providers_for_token(token: str) -> list[models.FiatProvider]:
                 results.append(provider)
                 break
     return results
+
+
+def create_transaction(
+    customer_address: str,
+    fiat_provider_address: str,
+    fiat_amount: float,
+    token_amount: int,
+    token_address: str,
+):
+    trans = models.Transaction(
+        customer_address=customer_address,
+        fiat_provider=fiat_provider_address,
+        fiat_amount=fiat_amount,
+        token_amount=token_amount,
+        token_address=token_address
+    )
+    TRANSACTIONS[trans.transaction_id] = trans
+    return trans

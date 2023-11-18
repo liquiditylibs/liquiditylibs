@@ -2,15 +2,17 @@ import logging
 import json
 
 from cartesi import (
+    abi,
     DApp,
     Rollup,
     RollupData,
     JSONRouter,
+    ABIRouter,
     URLRouter,
     URLParameters,
 )
 
-# from .config import settings
+from .config import settings
 
 from . import liquidity_db
 from . import models
@@ -20,9 +22,11 @@ LOGGER = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
 dapp = DApp()
 
+abirouter = ABIRouter()
 jsonrouter = JSONRouter()
 urlrouter = URLRouter()
 
+dapp.add_router(abirouter)
 dapp.add_router(jsonrouter)
 dapp.add_router(urlrouter)
 
@@ -87,6 +91,49 @@ def list_providers(rollup: Rollup, data: RollupData, params: URLParameters):
     report_payload = '0x' + report_payload.encode('utf-8').hex()
     rollup.report(payload=report_payload)
 
+    return True
+
+
+@abirouter.advance(msg_sender=settings.ERC20_PORTAL_ADDRESS)
+def deposit_erc20(rollup: Rollup, data: RollupData) -> bool:
+
+    # Decode data (this should be done by the framework in the future)
+    payload = data.bytes_payload()
+    LOGGER.debug("Deposit ERC20 Payload: %s", payload.hex())
+
+    deposit: models.DepositERC20Payload = abi.decode_to_model(
+        data=payload,
+        model=models.DepositERC20Payload,
+        packed=True
+    )
+
+    try:
+        start_trans_data = deposit.execLayerData.decode('utf-8')
+        start_trans = models.StartTransactionPayload.parse_obj(
+            json.loads(start_trans_data)
+        )
+    except Exception:
+        LOGGER.error("Error parsing StartTransactionPayload", exc_info=True)
+        # TODO: voucher to return the value
+        raise
+
+    LOGGER.info(repr(start_trans))
+
+    # Register transaction
+    trans = liquidity_db.create_transaction(
+        customer_address=deposit.sender,
+        fiat_provider_address=start_trans.fiat_provider,
+        fiat_amount=start_trans.fiat_amount,
+        token_amount=deposit.depositAmount,
+        token_address=deposit.token,
+    )
+
+    resp = {
+        'transaction_id': trans.transaction_id,
+    }
+
+    resp_payload = str2hex(json.dumps(resp))
+    rollup.notice(payload=resp_payload)
     return True
 
 

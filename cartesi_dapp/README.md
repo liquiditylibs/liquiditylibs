@@ -1,3 +1,3 @@
-# Tribes Cartesi DApp
+# Liquidity Libs DApp
 
-Cartesi based DApp for the Cartesi DApp
+Cartesi based DApp for the Liquidity Libs
