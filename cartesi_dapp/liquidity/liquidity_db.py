@@ -46,3 +46,16 @@ def create_transaction(
     )
     TRANSACTIONS[trans.transaction_id] = trans
     return trans
+
+
+def list_transactions_for_provider(fiat_provider: str):
+    fiat_provider = fiat_provider.lower()
+    resp = []
+
+    for trans in TRANSACTIONS.values():
+        if trans.fiat_provider == fiat_provider:
+            resp.append(trans)
+
+    return resp
+
+

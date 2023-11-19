@@ -137,5 +137,18 @@ def deposit_erc20(rollup: Rollup, data: RollupData) -> bool:
     return True
 
 
+@urlrouter.inspect(path='transactions/{provider}')
+def list_transactions(rollup: Rollup, data: RollupData, params: URLParameters):
+
+    provider = params.path_params['provider']
+
+    transactions = liquidity_db.list_transactions_for_provider(provider)
+    transactions = [x.dict() for x in transactions]
+    payload = str2hex(json.dumps(transactions))
+    rollup.report(payload=payload)
+
+    return True
+
+
 if __name__ == '__main__':
     dapp.run()

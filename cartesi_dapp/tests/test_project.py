@@ -128,3 +128,20 @@ def test_should_start_transaction(
     notice = bytes.fromhex(notice[2:])
     notice = json.loads(notice.decode('utf-8'))
     assert 'transaction_id' in notice
+
+
+@pytest.mark.order(after='test_should_list_projects_for_usdc')
+def test_should_list_transactions_1(dapp_client: TestClient):
+
+    path = f'transactions/{PROVIDER_1_ADDRESS}'
+    inspect_payload = '0x' + path.encode('ascii').hex()
+    dapp_client.send_inspect(hex_payload=inspect_payload)
+
+    assert dapp_client.rollup.status
+
+    report = dapp_client.rollup.reports[-1]['data']['payload']
+    report = bytes.fromhex(report[2:])
+    report = json.loads(report.decode('utf-8'))
+
+    assert isinstance(report, list)
+    assert len(report) == 1
