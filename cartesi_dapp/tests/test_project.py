@@ -159,6 +159,16 @@ def finish_transaction_payload(transaction_id: str) -> str:
     return payload
 
 
+def confirm_transaction_payload(transaction_id: str) -> str:
+    payload_data = {
+        'op': 'confirm_transaction',
+        'transaction_id': transaction_id,
+    }
+
+    payload = '0x' + json.dumps(payload_data).encode('ascii').hex()
+    return payload
+
+
 @pytest.mark.order(after='test_should_start_transaction')
 def test_should_finish_transaction(dapp_client: TestClient):
 
@@ -174,6 +184,7 @@ def test_should_finish_transaction(dapp_client: TestClient):
     transaction = json.loads(report.decode('utf-8'))[0]
 
     assert 'transaction_id' in transaction
+    assert transaction['state'] == 'outstanding'
 
     payload = finish_transaction_payload(transaction['transaction_id'])
 
@@ -184,3 +195,34 @@ def test_should_finish_transaction(dapp_client: TestClient):
     )
 
     assert dapp_client.rollup.status
+
+
+@pytest.mark.order(after='test_should_finish_transaction')
+def test_should_confirm_transaction(dapp_client: TestClient):
+
+    # Get transaction id
+    path = f'fiat_provider/{PROVIDER_1_ADDRESS}'
+    inspect_payload = '0x' + path.encode('ascii').hex()
+    dapp_client.send_inspect(hex_payload=inspect_payload)
+
+    assert dapp_client.rollup.status
+
+    report = dapp_client.rollup.reports[-1]['data']['payload']
+    report = bytes.fromhex(report[2:])
+    transaction = json.loads(report.decode('utf-8'))[0]
+
+    assert 'transaction_id' in transaction
+    assert transaction['state'] == 'pending_confirmation'
+
+    payload = confirm_transaction_payload(transaction['transaction_id'])
+
+    # Send the finalization
+    dapp_client.send_advance(
+        hex_payload=payload,
+        msg_sender=CUSTOMER_ADDRESS,
+    )
+
+    assert dapp_client.rollup.status
+
+    voucher = dapp_client.rollup.vouchers[-1]['data']['payload']
+    assert voucher

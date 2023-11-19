@@ -16,8 +16,9 @@ from .config import settings
 
 from . import liquidity_db
 from . import models
+from . import vouchers
 
-
+DAPP_ADDRESS = None
 LOGGER = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
 dapp = DApp()
@@ -182,6 +183,45 @@ def get_transaction(rollup: Rollup, data: RollupData, params: URLParameters):
     trans = liquidity_db.get_transaction(trans_id)
     payload = str2hex(trans.json())
     rollup.report(payload=payload)
+    return True
+
+
+@abirouter.advance(msg_sender=settings.ADDR_RELAY_ADDRESS)
+def address_relay(rollup: Rollup, data: RollupData) -> bool:
+    global DAPP_ADDRESS
+    LOGGER.debug('Got DApp address %s', data.payload)
+    DAPP_ADDRESS = data.payload
+    return True
+
+
+@jsonrouter.advance(route_dict={'op': 'confirm_transaction'})
+def confirm_transaction(rollup: Rollup, data: RollupData) -> bool:
+
+    payload = models.ConfirmTransactionPayload.parse_obj(
+        data.json_payload()
+    )
+
+    trans = liquidity_db.get_transaction(payload.transaction_id)
+
+    if trans.state != models.TransactionState.pending_confirmation:
+        LOGGER.warning('Trying to confirm transaction %s that is in state %s.',
+                       payload.transaction_id, trans.state)
+        return False
+
+    if data.metadata.msg_sender != trans.customer_address:
+        LOGGER.warning('Someone other than the client tried to confirm a'
+                       ' transaction. Transaction=%s sender=%s',
+                       trans.transaction_id, data.metadata.msg_sender)
+        return False
+
+    trans.state = models.TransactionState.confirmed
+    voucher = vouchers.withdraw_erc20(
+        rollup_address=DAPP_ADDRESS,
+        token=trans.token_address,
+        receiver_address=trans.fiat_provider,
+        amount=trans.token_amount,
+    )
+    rollup.voucher(voucher)
     return True
 
 

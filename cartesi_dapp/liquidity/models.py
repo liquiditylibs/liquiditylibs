@@ -77,5 +77,6 @@ class FinishTransactionPayload(BaseModel):
     receipt: str
 
 
-class FinishedTransactionPayload(BaseModel):
-    pass
+class ConfirmTransactionPayload(BaseModel):
+    op: Literal['confirm_transaction']
+    transaction_id: str
