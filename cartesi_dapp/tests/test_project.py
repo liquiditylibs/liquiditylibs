@@ -130,10 +130,10 @@ def test_should_start_transaction(
     assert 'transaction_id' in notice
 
 
-@pytest.mark.order(after='test_should_list_projects_for_usdc')
+@pytest.mark.order(after='test_should_start_transaction')
 def test_should_list_transactions_1(dapp_client: TestClient):
 
-    path = f'transactions/{PROVIDER_1_ADDRESS}'
+    path = f'fiat_provider/{PROVIDER_1_ADDRESS}'
     inspect_payload = '0x' + path.encode('ascii').hex()
     dapp_client.send_inspect(hex_payload=inspect_payload)
 
@@ -145,3 +145,42 @@ def test_should_list_transactions_1(dapp_client: TestClient):
 
     assert isinstance(report, list)
     assert len(report) == 1
+    assert report[0]['state'] == 'outstanding'
+
+
+def finish_transaction_payload(transaction_id: str) -> str:
+    payload_data = {
+        'op': 'finish_transaction',
+        'transaction_id': transaction_id,
+        'receipt': '<base64 encoded data of receipt photo>',
+    }
+
+    payload = '0x' + json.dumps(payload_data).encode('ascii').hex()
+    return payload
+
+
+@pytest.mark.order(after='test_should_start_transaction')
+def test_should_finish_transaction(dapp_client: TestClient):
+
+    # Get transaction id
+    path = f'fiat_provider/{PROVIDER_1_ADDRESS}'
+    inspect_payload = '0x' + path.encode('ascii').hex()
+    dapp_client.send_inspect(hex_payload=inspect_payload)
+
+    assert dapp_client.rollup.status
+
+    report = dapp_client.rollup.reports[-1]['data']['payload']
+    report = bytes.fromhex(report[2:])
+    transaction = json.loads(report.decode('utf-8'))[0]
+
+    assert 'transaction_id' in transaction
+
+    payload = finish_transaction_payload(transaction['transaction_id'])
+
+    # Send the finalization
+    dapp_client.send_advance(
+        hex_payload=payload,
+        msg_sender=PROVIDER_1_ADDRESS,
+    )
+
+    assert dapp_client.rollup.status

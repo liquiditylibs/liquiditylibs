@@ -68,3 +68,14 @@ class Transaction(BaseModel):
     token_amount: int
     token_address: str
     state: TransactionState = TransactionState.outstanding
+    receipt: str = None
+
+
+class FinishTransactionPayload(BaseModel):
+    op: Literal['finish_transaction']
+    transaction_id: str
+    receipt: str
+
+
+class FinishedTransactionPayload(BaseModel):
+    pass

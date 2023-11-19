@@ -137,7 +137,7 @@ def deposit_erc20(rollup: Rollup, data: RollupData) -> bool:
     return True
 
 
-@urlrouter.inspect(path='transactions/{provider}')
+@urlrouter.inspect(path='fiat_provider/{provider}')
 def list_transactions(rollup: Rollup, data: RollupData, params: URLParameters):
 
     provider = params.path_params['provider']
@@ -147,6 +147,41 @@ def list_transactions(rollup: Rollup, data: RollupData, params: URLParameters):
     payload = str2hex(json.dumps(transactions))
     rollup.report(payload=payload)
 
+    return True
+
+
+@jsonrouter.advance(route_dict={'op': 'finish_transaction'})
+def finish_transaction(rollup: Rollup, data: RollupData) -> bool:
+
+    payload = models.FinishTransactionPayload.parse_obj(
+        data.json_payload()
+    )
+
+    trans = liquidity_db.get_transaction(payload.transaction_id)
+
+    if trans.state != models.TransactionState.outstanding:
+        LOGGER.warning('Trying to finish transaction %s that is in state %s.',
+                       payload.transaction_id, trans.state)
+        return False
+
+    if data.metadata.msg_sender != trans.fiat_provider:
+        LOGGER.warning('Someone other than provider tried to finish a'
+                       ' transaction. Transaction=%s sender=%s',
+                       trans.transaction_id, data.metadata.msg_sender)
+        return False
+
+    trans.state = models.TransactionState.pending_confirmation
+    trans.receipt = payload.receipt
+    return True
+
+
+@urlrouter.inspect(path='transactions/{transaction_id}')
+def get_transaction(rollup: Rollup, data: RollupData, params: URLParameters):
+
+    trans_id = params.path_params['transaction_id']
+    trans = liquidity_db.get_transaction(trans_id)
+    payload = str2hex(trans.json())
+    rollup.report(payload=payload)
     return True
 
 

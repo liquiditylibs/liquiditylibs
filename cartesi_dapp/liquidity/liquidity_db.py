@@ -59,3 +59,5 @@ def list_transactions_for_provider(fiat_provider: str):
     return resp
 
 
+def get_transaction(transaction_id: str) -> models.Transaction | None:
+    return TRANSACTIONS.get(transaction_id)
