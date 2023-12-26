@@ -1,0 +1,19 @@
+{
+    "name": "contract",
+    "version": "1.0.0",
+    "description": "contract for liquidator",
+    "main": "index.js",
+    "scripts": {
+        "test": "npx hardhat test"
+    },
+    "author": "",
+    "license": "ISC",
+    "devDependencies": {
+        "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+        "@nomicfoundation/hardhat-toolbox-viem": "^2.0.0",
+        "hardhat": "^2.19.3"
+    },
+    "dependencies": {
+        "@openzeppelin/contracts": "^5.0.1"
+    }
+}
