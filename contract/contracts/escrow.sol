@@ -77,6 +77,15 @@ contract Liquidator is ReentrancyGuard {
         _;
     }
 
+    function getTax() private view returns (uint256) {
+        if (totalTxs > 100 && totalTxs < 1000) {
+            return 5;
+        } else if (totalTxs >= 1000) {
+            return 10;
+        }
+        return 0;
+    }
+
     function deposit(
         uint256 _amount,
         address _receiver
@@ -91,13 +100,9 @@ contract Liquidator is ReentrancyGuard {
             busy[_receiver] == address(0),
             "User is busy in other transaction"
         );
-        if (totalTxs > 100 && totalTxs < 1000) {
-            _valueTransfer = uint256((_amount * 1005) / 1000);
-            balance[owner] += _valueTransfer - _amount;
-        } else if (totalTxs >= 1000) {
-            _valueTransfer = uint256((_amount * 101) / 100);
-            balance[owner] += _valueTransfer - _amount;
-        }
+        uint256 _tax = getTax();
+        _valueTransfer = uint256((_amount * (1000 + _tax)) / 1000);
+        balance[owner] += _valueTransfer - _amount;
         bool transferSuccess = token.transferFrom(
             msg.sender,
             address(this),
@@ -123,15 +128,12 @@ contract Liquidator is ReentrancyGuard {
     }
 
     function distributeTax(uint256 _amount) private {
-        uint256 _tax;
-        if (totalTxs > 100 && totalTxs < 1000) {
-            _tax = uint256((_amount * 25) / 10000);
-        } else if (totalTxs >= 1000) {
-            _tax = uint256((_amount * 5) / 1000);
-        }
+        uint256 tax;
+        uint256 _tax = getTax();
         if (_tax > 0) {
-            balance[owner] -= _tax;
-            balance[msg.sender] += _tax;
+            tax = uint256((_amount * (_tax * 5)) / 10000);
+            balance[owner] -= tax;
+            balance[msg.sender] += tax;
         }
     }
 
