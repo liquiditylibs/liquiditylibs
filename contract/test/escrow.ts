@@ -17,9 +17,10 @@ describe("Escrow", function () {
         } = account3;
         const usdl = await hre.viem.deployContract("USDL", [addressOwner]);
         const { address: addressERC20 } = usdl;
-        const escrow = await hre.viem.deployContract("TokenEscrow", [
+        const escrow = await hre.viem.deployContract("Liquidator", [
             addressERC20,
             [addressOwner],
+            [addressOwner, address3],
         ]);
         const { address: addressEscrow } = escrow;
         return {

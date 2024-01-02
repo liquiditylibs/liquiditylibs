@@ -1,0 +1,20 @@
+{
+    "mainFlow": {
+        "approve": 46915,
+        "deposit": 150991,
+        "confirm": 67741,
+        "total": 265647
+    },
+    "confirmFrog": {
+        "approve": 46915,
+        "deposit": 150991,
+        "confirm": 70553,
+        "total": 268459
+    },
+    "rejectFrog": {
+        "approve": 46915,
+        "deposit": 150991,
+        "reject": 72709,
+        "total": 270615
+    }
+}

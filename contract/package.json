@@ -4,7 +4,12 @@
     "description": "contract for liquidator",
     "main": "index.js",
     "scripts": {
-        "test": "npx hardhat test"
+        "test": "npx hardhat test",
+        "deploy-local": "npx hardhat run --network localhost scripts/deploy.ts",
+        "deposit-local": "npx hardhat run --network localhost scripts/deposit.ts",
+        "deposit-frog-local": "npx hardhat run --network localhost scripts/confirmFrog.ts",
+        "reject-frog-local": "npx hardhat run --network localhost scripts/rejectFrog.ts",
+        "get-budget": "bash get-budget.sh"
     },
     "author": "",
     "license": "ISC",
